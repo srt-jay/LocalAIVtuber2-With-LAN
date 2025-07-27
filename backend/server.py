@@ -597,12 +597,6 @@ class TTSRequest(BaseModel):
 class ChangeVoiceRequest(BaseModel):
     voice_name: str
 
-class UploadVoiceRequest(BaseModel):
-    name: str
-    reference_audio: UploadFile = File(...)
-    reference_text: str
-    reference_language: str
-
 class DeleteVoiceRequest(BaseModel):
     name: str
 
@@ -636,13 +630,26 @@ async def get_audio(request: TTSRequest):
     return Response(response, media_type="audio/wav")
 
 @app.post("/api/tts/upload")
-async def upload_voice(request: UploadVoiceRequest):
+async def upload_voice(
+    name: str = Form(...),
+    reference_text: str = Form(...),
+    reference_language: str = Form(...),
+    reference_audio: UploadFile = File(...)
+):
     try:
-        result = tts.upload_voice(request.name, request.reference_audio, request.reference_text, request.reference_language)
+        # Read the file content
+        audio_data = await reference_audio.read()
+        
+        result = tts.upload_voice(
+            name=name,
+            reference_audio=audio_data,
+            reference_text=reference_text,
+            reference_language=reference_language
+        )
         return JSONResponse(content=result)
     except Exception as e:
         logger.error(f"Error uploading voice: {e}", exc_info=True)
-        return JSONResponse(status_code=500, content={"error": "Failed to upload voice"})
+        return JSONResponse(status_code=500, content={"error": f"Failed to upload voice: {str(e)}"})
     
 @app.delete("/api/tts/delete")
 async def delete_voice(request: DeleteVoiceRequest):

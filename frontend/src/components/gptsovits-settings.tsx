@@ -12,6 +12,9 @@ export default function GptSovitsSettings() {
   useEffect(() => {
     // Initial state
     setVoices(provider.getVoices());
+    if (provider.getCurrentVoice() === null) {
+      provider.setVoice(voices[0]?.name || "");
+    }
 
     // Subscribe to changes
     const unsubscribe = provider.subscribe(() => {
@@ -52,7 +55,7 @@ export default function GptSovitsSettings() {
         <GptSovitsUploadManager
           voices={voices}
           onVoicesChange={() => {
-            setVoices(provider.getVoices());
+            provider.refreshVoices();
           }}
         />
       </CardContent>

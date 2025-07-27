@@ -21,6 +21,11 @@ export class GPTSoVITSProvider extends BaseTTSProvider {
         await this.fetchVoices();
     }
 
+    // Add public method to refresh voices
+    async refreshVoices(): Promise<void> {
+        await this.fetchVoices();
+    }
+
     subscribe(callback: GPTSoVITSStateUpdateCallback): () => void {
         this.subscribers.add(callback);
         return () => this.subscribers.delete(callback);
