@@ -50,7 +50,7 @@ export default function RvcSettings() {
                 <CardContent className="space-y-6">
                     <div className="flex space-x-4">
                         <SettingDropdown
-                            id="edge-tts-model"
+                            id="tts.rvc.edge-tts-model"
                             defaultValue={edgeModels[0]}
                             label="Edge TTS Model"
                             options={edgeOptions}
@@ -58,7 +58,7 @@ export default function RvcSettings() {
                         />
 
                         <SettingDropdown
-                            id="rvc-model"
+                            id="tts.rvc.model"
                             defaultValue={rvcModels[0]}
                             label="RVC Model"
                             options={rvcOptions}

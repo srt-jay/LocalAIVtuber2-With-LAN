@@ -15,6 +15,14 @@ interface SettingsDropdownProps {
 
 const SettingDropdown: React.FC<SettingsDropdownProps> = ({ id, defaultValue, label, description, className, options, onValueChange }) => {
     const { settings, updateSetting } = useSettings();
+
+    useEffect(() => {
+        // Initialize setting with default value if it doesn't exist
+        if (settings[id] === undefined) {
+            updateSetting(id, defaultValue);
+        }
+    }, []);
+
     const currentValue = settings[id] !== undefined ? settings[id] : defaultValue;
 
     useEffect(() => {

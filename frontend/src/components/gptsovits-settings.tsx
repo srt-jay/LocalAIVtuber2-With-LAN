@@ -42,7 +42,7 @@ export default function GptSovitsSettings() {
       </CardHeader>
       <CardContent className="space-y-6">
         <SettingDropdown
-          id="gptsovits-voice"
+          id="tts.gptsovits.voice"
           defaultValue={voices[0]?.name || ''}
           label="Voice Model"
           options={voiceOptions}

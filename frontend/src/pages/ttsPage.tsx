@@ -37,7 +37,7 @@ export default function TTSPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SettingDropdown id="tts-provider" defaultValue="gpt-sovits" options={{ "gpt-sovits": "GPT-SoVITS", "rvc": "RVC (Retrieval-based-Voice-Conversion)" }} onValueChange={handleProviderChange} />
+            <SettingDropdown id="tts.provider" defaultValue="gpt-sovits" options={{ "gpt-sovits": "GPT-SoVITS", "rvc": "RVC (Retrieval-based-Voice-Conversion)" }} onValueChange={handleProviderChange} />
           </CardContent>
         </Card>
 
