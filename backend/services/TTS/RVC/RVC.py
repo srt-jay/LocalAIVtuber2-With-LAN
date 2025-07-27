@@ -10,6 +10,12 @@ import edge_tts
 from ..BaseTTS import BaseTTS
 from .inferrvc import load_torchaudio, RVC
 from .edge_tts_voices import SUPPORTED_VOICES
+import torch
+from fairseq.data.dictionary import Dictionary
+
+
+current_module_directory = os.path.dirname(__file__)
+torch.serialization.add_safe_globals([Dictionary])
 
 class RVCInference(BaseTTS):
     def __init__(self):
@@ -155,3 +161,11 @@ class RVCInference(BaseTTS):
             self.protect = max(0, min(0.5, kwargs['protect']))
         if 'use_rvc' in kwargs:
             self.use_rvc = bool(kwargs['use_rvc'])
+
+
+if __name__ == "__main__":
+    rvc = RVCInference()
+    wav_bytes = rvc.synthesize("Hello, how are you?")
+    print(f'wav_bytes: {wav_bytes}')
+    with open(os.path.join(os.path.dirname(__file__), 'rvc_output.wav'), 'wb') as f:
+        f.write(wav_bytes)

@@ -1,4 +1,3 @@
-from huggingface_hub import hf_hub_download
 from .configs.config import Config
 from .pipeline import Pipeline
 from .infer_pack.models import (
@@ -24,13 +23,9 @@ _gpu = torch.device('cuda:0')
 _devgp = dev = _gpu if torch.cuda.is_available() else _cpu
 
 
-def download_models():
-    hf_hub_download('lj1995/VoiceConversionWebUI', 'hubert_base.pt')
-    hf_hub_download('lj1995/VoiceConversionWebUI', 'rmvpe.pt')
-
-
 def load_hubert(config):
-    fl = hf_hub_download('lj1995/VoiceConversionWebUI', 'hubert_base.pt')
+    current_module_directory = os.path.dirname(__file__)
+    fl = os.path.join(current_module_directory, "pretrained", "hubert_base.pt")
     models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
         [fl],
         suffix="",

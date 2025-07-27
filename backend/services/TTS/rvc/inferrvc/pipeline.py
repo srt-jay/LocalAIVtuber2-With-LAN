@@ -1,4 +1,3 @@
-from huggingface_hub import hf_hub_download
 from scipy import signal
 import torchcrepe
 import torch.nn.functional as F
@@ -29,6 +28,9 @@ bh, ah = signal.butter(N=5, Wn=48, btype="high", fs=16000)
 bh, ah = torch.from_numpy(bh).to(_devgp, non_blocking=True), torch.from_numpy(
     ah).to(_devgp, non_blocking=True)
 
+
+current_module_directory = os.path.dirname(__file__)
+rmvpe_path = os.path.join(current_module_directory, "pretrained", "rmvpe.pt")
 
 @lru_cache  # torch.Tensor should be serializable
 def cache_harvest_f0(audio: torch.Tensor, fs, f0max, f0min, frame_period):
@@ -126,11 +128,10 @@ class Pipeline(object):
                 from .rmvpe import RMVPE
 
                 logger.info(
-                    "Loading rmvpe model,%s" % hf_hub_download(
-                        'lj1995/VoiceConversionWebUI', 'rmvpe.pt'),
+                    "Loading rmvpe model,%s" % rmvpe_path,
                 )
                 self.model_rmvpe = RMVPE(
-                    hf_hub_download('lj1995/VoiceConversionWebUI', 'rmvpe.pt'),
+                    rmvpe_path,
                     is_half=self.is_half,
                     device=self.device,
                 )
