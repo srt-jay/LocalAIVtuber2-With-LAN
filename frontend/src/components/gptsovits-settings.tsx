@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ttsManager } from "@/lib/ttsManager";
 import { GPTSoVITSProvider, TTSVoice } from "@/lib/tts/gptsovitsProvider";
 import SettingDropdown from "./setting-dropdown";
+import GptSovitsUploadManager from "./gptsovits-upload-manager";
 
 export default function GptSovitsSettings() {
   const [voices, setVoices] = useState<TTSVoice[]>([]);
@@ -47,6 +48,12 @@ export default function GptSovitsSettings() {
           label="Voice Model"
           options={voiceOptions}
           onValueChange={handleVoiceChange}
+        />
+        <GptSovitsUploadManager
+          voices={voices}
+          onVoicesChange={() => {
+            setVoices(provider.getVoices());
+          }}
         />
       </CardContent>
     </Card>

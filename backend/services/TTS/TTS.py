@@ -18,3 +18,10 @@ class TTS:
     def synthesize(self, text):
         """Synthesize text to speech using the current voice"""
         return self.tts_engine.synthesize(text)
+    
+    def upload_voice(self, name, reference_audio, reference_text, reference_language):
+        return self.tts_engine.upload_voice(name, reference_audio, reference_text, reference_language)
+    
+    def delete_voice(self, name):
+        return self.tts_engine.delete_voice(name)
+    

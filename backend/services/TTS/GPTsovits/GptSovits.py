@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import shutil
 import subprocess
 import sys
 from typing import Generator
@@ -7,7 +8,6 @@ import wave
 import numpy as np
 import soundfile as sf
 from services.lib.LAV_logger import logger
-from ..BaseTTS import BaseTTS
 
 base_dir = os.path.dirname(__file__)
 sys.path.insert(0, base_dir)
@@ -20,7 +20,7 @@ from services.TTS.GPTsovits.GPT_SoVITS.TTS_infer_pack.text_segmentation_method i
 current_module_directory = os.path.dirname(__file__)
 cut_method_names = get_cut_method_names()
 
-class GptSovits(BaseTTS):
+class GptSovits():
     def __init__(self):
         config_path = os.path.join(current_module_directory, "GPT_SoVITS", "configs", "tts_infer.yaml")
         self.tts_config = TTS_Config(config_path)
@@ -261,3 +261,93 @@ def wave_header_chunk(frame_input=b"", channels=1, sample_width=2, sample_rate=3
 
     wav_buf.seek(0)
     return wav_buf.read()
+
+
+def upload_voice(self, name, reference_audio, reference_text, reference_language):
+    """Upload a new voice to the models directory.
+    
+    Args:
+        name (str): Name of the voice (will be used as directory name)
+        reference_audio (bytes): Audio file data
+        reference_text (str): Reference text that matches the audio
+        reference_language (str): Language code for the reference text
+    
+    Returns:
+        dict: Status message
+    """
+    try:
+        # Create voice directory
+        voice_dir = os.path.join(current_module_directory, "models", name)
+        os.makedirs(voice_dir, exist_ok=True)
+        
+        # Save audio file
+        audio_buffer = BytesIO(reference_audio)
+        
+        # Convert to wav if needed using soundfile
+        try:
+            data, samplerate = sf.read(audio_buffer)
+            wav_path = os.path.join(voice_dir, f"[{reference_language}]{reference_text}.wav")
+            sf.write(wav_path, data, samplerate)
+        except Exception as e:
+            # If soundfile fails, try ffmpeg conversion
+            process = subprocess.Popen([
+                'ffmpeg',
+                '-i', 'pipe:0',  # Read from stdin
+                '-ar', '32000',  # Set sample rate to 32kHz
+                '-ac', '1',      # Convert to mono
+                '-f', 'wav',     # Output format
+                wav_path         # Output file
+            ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # Reset buffer position and write to ffmpeg
+            audio_buffer.seek(0)
+            process.communicate(input=audio_buffer.read())
+            
+            if process.returncode != 0:
+                raise ValueError("Failed to convert audio file to WAV format")
+        
+        # Create metadata.json
+        metadata = {
+            "reference_text": reference_text,
+            "language": reference_language,
+            "audio_file": os.path.basename(wav_path)
+        }
+        
+        metadata_path = os.path.join(voice_dir, "metadata.json")
+        import json
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        # Update voice files
+        self._update_voice_files()
+        
+        return {
+            "message": f"Voice '{name}' uploaded successfully",
+            "voice_path": wav_path
+        }
+        
+    except Exception as e:
+        logger.error(f"Error uploading voice: {e}", exc_info=True)
+        raise ValueError(f"Failed to upload voice: {str(e)}")
+    
+def delete_voice(self, name):
+    """Delete a voice from the models directory.
+    
+    Args:
+        name (str): Name of the voice to delete
+    
+    Returns:
+        dict: Status message
+    """
+    try:
+        voice_dir = os.path.join(current_module_directory, "models", name)  
+        if os.path.exists(voice_dir):
+            shutil.rmtree(voice_dir)
+            self._update_voice_files()
+            return {"message": f"Voice '{name}' deleted successfully"}
+        else:
+            return {"message": f"Voice '{name}' not found"}
+    except Exception as e:
+        logger.error(f"Error deleting voice: {e}", exc_info=True)
+        raise ValueError(f"Failed to delete voice: {str(e)}")
+

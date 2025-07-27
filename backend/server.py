@@ -597,6 +597,15 @@ class TTSRequest(BaseModel):
 class ChangeVoiceRequest(BaseModel):
     voice_name: str
 
+class UploadVoiceRequest(BaseModel):
+    name: str
+    reference_audio: UploadFile = File(...)
+    reference_text: str
+    reference_language: str
+
+class DeleteVoiceRequest(BaseModel):
+    name: str
+
 @app.get("/api/tts/voices")
 async def get_available_voices():
     try:
@@ -625,6 +634,24 @@ async def change_voice(request: ChangeVoiceRequest):
 async def get_audio(request: TTSRequest):
     response = tts.synthesize(request.text)
     return Response(response, media_type="audio/wav")
+
+@app.post("/api/tts/upload")
+async def upload_voice(request: UploadVoiceRequest):
+    try:
+        result = tts.upload_voice(request.name, request.reference_audio, request.reference_text, request.reference_language)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error uploading voice: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to upload voice"})
+    
+@app.delete("/api/tts/delete")
+async def delete_voice(request: DeleteVoiceRequest):
+    try:
+        result = tts.delete_voice(request.name)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error deleting voice: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete voice"})
     
 # *******************************
 # Character Models
