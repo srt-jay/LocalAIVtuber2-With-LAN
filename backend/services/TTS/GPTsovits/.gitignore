@@ -20,3 +20,4 @@ ffmpeg*
 ffprobe*
 tools/AP_BWE_main/24kto48k/*
 !tools/AP_BWE_main/24kto48k/readme.txt
+nltk_data

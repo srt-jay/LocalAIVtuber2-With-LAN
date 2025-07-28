@@ -14,6 +14,7 @@ import { useState } from "react";
 import { songDataList } from "@/constants/song-data";
 import { useSettings } from "@/context/SettingsContext";
 import { SetlistEditor } from "@/components/setlist-editor";
+import { toast } from "sonner";
 
 export function KaraokeStream() {
     const { settings, updateSetting, loading } = useSettings();
@@ -59,7 +60,7 @@ export function KaraokeStream() {
 
     const handleStartStream = async () => {
         if (setlist.length === 0) {
-            alert("No songs in the setlist. Please add songs to start the stream.");
+            toast.error("No songs in the setlist. Please add songs to start the stream.");
             return;
         }
 
@@ -111,7 +112,7 @@ export function KaraokeStream() {
         displayChatResponse(closingSpeech);
 
         setStreamRunning(false);
-        alert("Stream has ended.");
+        toast.success("Stream has ended.");
     };
 
     const playSongAudio = async (song: string) => {

@@ -9,6 +9,7 @@ import SessionDetail from './session-detail';
 import { fetchSessions, deleteSession, indexSession, removeSessionIndex, reindexAllSessions } from '@/lib/sessionManager';
 import { Session } from '@/lib/types';
 import { ChatExportModal } from './data-export';
+import { toast } from 'sonner';
 
 interface ChatSession {
     id: string;
@@ -128,13 +129,13 @@ export default function SessionList() {
             const result = await reindexAllSessions();
             if (result.success) {
                 await getSessions(); // Refresh the sessions list
-                alert(`Reindexing completed! ${result.reindexed_count} sessions reindexed out of ${result.total_sessions} total sessions.`);
+                toast.success(`Reindexing completed! ${result.reindexed_count} sessions reindexed out of ${result.total_sessions} total sessions.`);
             } else {
-                alert('Failed to reindex all sessions: ' + result.message);
+                toast.error('Failed to reindex all sessions: ' + result.message);
             }
         } catch (error) {
             console.error('Failed to reindex all sessions:', error);
-            alert('Failed to reindex all sessions');
+            toast.error('Failed to reindex all sessions');
         } finally {
             setIsReindexingAll(false);
         }

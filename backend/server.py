@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 import time
 from services.lib.startup_progress import startup_progress
 # Track import time
@@ -13,12 +17,14 @@ from services.Input.VisionInput import VisionInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.Memory.HistoryStore import HistoryStore
+from services.Character.characterManager import CharacterManager
 from services.lib.LAV_logger import logger
+from services.lib.port_forward import create_proxy_middleware
+from services.lib.process_manager import process_manager
 import os
-import requests
 import aiofiles
 import aiohttp
-from fastapi import FastAPI, Query, Request, Response, WebSocket, HTTPException
+from fastapi import FastAPI, Request, Response, WebSocket, HTTPException, File, UploadFile, Form
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -29,6 +35,8 @@ import json
 from typing import Any, Dict, List
 import mss
 import traceback
+import threading
+import queue
 
 # Download progress tracking
 download_progress = {}
@@ -36,6 +44,25 @@ download_progress = {}
 # Show import completion immediately after imports
 import_time = time.time() - start_time
 startup_progress.complete_step(f"Imports completed in {import_time:.2f}s")
+
+# Initialize RVC server
+rvc_server_port = 8001  # Different port from main server
+
+# Start RVC server during initialization
+rvc_dir = os.path.join(os.path.dirname(__file__), "plugins", "rvc")
+rvc_runtime_python = os.path.join(rvc_dir, "runtime", "python.exe")
+rvc_server_script = os.path.join(rvc_dir, "rvc_server.py")
+
+success, message = process_manager.start_server_process(
+    name="RVC",
+    python_path=rvc_runtime_python,
+    script_path=rvc_server_script,
+    port=rvc_server_port,
+    cwd=rvc_dir
+)
+
+if not success:
+    logger.error(f"Failed to start RVC server: {message}")
 
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
@@ -51,6 +78,7 @@ memory:Memory = Memory()
 history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
 vision_input:VisionInput = VisionInput()
+character_manager:CharacterManager = CharacterManager()
 startup_progress.complete_step(f"AI Services loaded in {time.time() - start_time:.2f}s")
 
 clients = set()
@@ -573,6 +601,9 @@ class TTSRequest(BaseModel):
 class ChangeVoiceRequest(BaseModel):
     voice_name: str
 
+class DeleteVoiceRequest(BaseModel):
+    name: str
+
 @app.get("/api/tts/voices")
 async def get_available_voices():
     try:
@@ -585,7 +616,7 @@ async def get_available_voices():
         logger.error(f"Error getting voices: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to get available voices"})
 
-@app.post("/api/tts/voice")
+@app.post("/api/tts/change-voice")
 async def change_voice(request: ChangeVoiceRequest):
     try:
         result = tts.change_voice(request.voice_name)
@@ -599,9 +630,158 @@ async def change_voice(request: ChangeVoiceRequest):
 
 @app.post("/api/tts")
 async def get_audio(request: TTSRequest):
-    response = tts.syntheize(request.text)
+    response = tts.synthesize(request.text)
     return Response(response, media_type="audio/wav")
+
+@app.post("/api/tts/upload")
+async def upload_voice(
+    name: str = Form(...),
+    reference_text: str = Form(...),
+    reference_language: str = Form(...),
+    reference_audio: UploadFile = File(...)
+):
+    try:
+        # Read the file content
+        audio_data = await reference_audio.read()
+        
+        result = tts.upload_voice(
+            name=name,
+            reference_audio=audio_data,
+            reference_text=reference_text,
+            reference_language=reference_language
+        )
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error uploading voice: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": f"Failed to upload voice: {str(e)}"})
     
+@app.delete("/api/tts/delete")
+async def delete_voice(request: DeleteVoiceRequest):
+    try:
+        result = tts.delete_voice(request.name)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error deleting voice: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete voice"})
+    
+# *******************************
+# Character Models
+# *******************************
+
+@app.get("/api/character/live2d/models")
+async def get_live2d_models():
+    """Get all available Live2D models"""
+    try:
+        models = character_manager.get_live2d_models()
+        return JSONResponse(content={"models": models})
+    except Exception as e:
+        logger.error(f"Error getting Live2D models: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get Live2D models"})
+
+@app.get("/api/character/vrm/models")
+async def get_vrm_models():
+    """Get all available VRM models"""
+    try:
+        models = character_manager.get_vrm_models()
+        return JSONResponse(content={"models": models})
+    except Exception as e:
+        logger.error(f"Error getting VRM models: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get VRM models"})
+
+@app.get("/api/character/files/{file_path:path}")
+async def serve_character_files(file_path: str, request: Request):
+    """Serve character model files from backend"""
+    try:
+        # Get the full request path
+        full_path = request.url.path
+        
+        # Get the absolute file path using CharacterManager
+        absolute_path = character_manager.get_file_path(full_path)
+        
+        if absolute_path is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        return FileResponse(str(absolute_path))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving character file: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/character/vrm/upload")
+async def upload_vrm_model(file: UploadFile = File(...)):
+    """Upload a VRM model file"""
+    try:
+        # Read file content
+        file_data = await file.read()
+        
+        # Upload using character manager
+        success, message = character_manager.upload_vrm_model(file_data, file.filename)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error uploading VRM model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to upload model"})
+
+@app.post("/api/character/live2d/upload-folder")
+async def upload_live2d_folder(files: List[UploadFile] = File(...)):
+    """Upload a Live2D model folder"""
+    try:
+        # Read all files and their relative paths
+        file_data = []
+        for file in files:
+            content = await file.read()
+            file_data.append((file.filename, content))
+        
+        # Upload using character manager
+        success, message = character_manager.upload_live2d_folder(file_data)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error uploading Live2D model folder: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to upload model folder"})
+
+class DeleteModelRequest(BaseModel):
+    path: str
+
+@app.post("/api/character/vrm/delete")
+async def delete_vrm_model(request: DeleteModelRequest):
+    """Delete a VRM model"""
+    try:
+        success, message = character_manager.delete_vrm_model(request.path)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error deleting VRM model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete model"})
+
+@app.post("/api/character/live2d/delete")
+async def delete_live2d_model(request: DeleteModelRequest):
+    """Delete a Live2D model folder"""
+    try:
+        success, message = character_manager.delete_live2d_model(request.path)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error deleting Live2D model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete model"})
 
 # *******************************
 # Settings
@@ -682,7 +862,7 @@ startup_progress.complete_step(f"Settings applied in {time.time() - start_time:.
 start_time = time.time()
 startup_progress.show_step("Warming up TTS")
 try:
-    tts.syntheize("Hi")
+    tts.synthesize("Hi")
     startup_progress.complete_step(f"TTS warmed up successfully in {time.time() - start_time:.2f}s")
 except Exception as e:
     startup_progress.complete_step(f"TTS warm-up failed (non-critical) in {time.time() - start_time:.2f}s")
@@ -965,5 +1145,13 @@ async def query_memory_context(request: QueryContextRequest):
         logger.error(f"Error querying memory context: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to query memory context"})
 
+# Add RVC proxy middleware
+app.middleware("http")(create_proxy_middleware("/api/rvc", rvc_server_port))
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    try:
+        uvicorn.run(app, host="localhost", port=8000)
+    finally:
+        # Stop all managed processes on shutdown
+        process_manager.stop_all_servers()
+

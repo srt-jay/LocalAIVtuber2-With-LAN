@@ -11,6 +11,8 @@ interface SettingsSliderProps {
     max?: number;
     step?: number;
     defaultValue?: number;
+    className?: string;
+    onChange?: (value: number) => void;
 }
 
 const SettingSlider: React.FC<SettingsSliderProps> = ({ 
@@ -20,7 +22,9 @@ const SettingSlider: React.FC<SettingsSliderProps> = ({
     min = 0, 
     max = 100, 
     step = 1, 
-    defaultValue = 0 
+    defaultValue = 0,
+    className = "",
+    onChange
 }) => {
     const { settings, updateSetting } = useSettings();
     
@@ -29,10 +33,11 @@ const SettingSlider: React.FC<SettingsSliderProps> = ({
     
     const handleValueChange = (value: number[]) => {
         updateSetting(id, value[0]);
+        onChange?.(value[0]);
     };
 
     return (
-        <div className="flex flex-col space-y-2 w-full">
+        <div className={`flex flex-col space-y-2 w-full ${className}`}>
             <div className="flex items-center justify-between">
                 <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
                 <span className="text-sm text-muted-foreground font-mono">
@@ -46,7 +51,7 @@ const SettingSlider: React.FC<SettingsSliderProps> = ({
                 step={step}
                 value={[currentValue]}
                 onValueChange={handleValueChange}
-                className="w-full"
+                className={`w-full`}
             />
             <p className="text-xs text-muted-foreground">{description}</p>
         </div>

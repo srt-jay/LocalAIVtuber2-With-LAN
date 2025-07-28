@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Download, Brain, Check, RefreshCw, AlertCircle, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface AIModel {
   displayName: string
@@ -131,11 +132,11 @@ const [open, setOpen] = useState(false)
           }
         }))
       } else {
-        alert(`Download failed: ${data.error}`)
+        toast.error(`Download failed: ${data.error}`)
       }
     } catch (error) {
       console.error("Download failed:", error)
-      alert("Download failed: Network error")
+      toast.error("Download failed: Network error")
     }
   }
 
@@ -163,11 +164,11 @@ const [open, setOpen] = useState(false)
           setInternalSelected(null)
         }
       } else {
-        alert(`Delete failed: ${data.error}`)
+        toast.error(`Delete failed: ${data.error}`)
       }
     } catch (error) {
       console.error("Delete failed:", error)
-      alert("Delete failed: Network error")
+      toast.error("Delete failed: Network error")
     }
   }
 
