@@ -1150,7 +1150,7 @@ app.middleware("http")(create_proxy_middleware("/api/rvc", rvc_server_port))
 
 if __name__ == "__main__":
     try:
-        uvicorn.run(app, host="localhost", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     finally:
         # Stop all managed processes on shutdown
         process_manager.stop_all_servers()
