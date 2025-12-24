@@ -1,11 +1,16 @@
 # This is a fork that adds the basic LAN capabibility to this project. The server now runs on the LAN IPv4 by default, so if you have a dedicated CUDA machine, you can access the WebUI from a different PC on LAN,
+## Changes in this fork
+- Server now binds to `0.0.0.0:8000` by default for LAN access (safe—still local network only, no internet exposure).
+- Improved README with LAN setup instructions.
+  
 # Installation Process
   **If you ALREADY have LocalAIVtuber2 Installed**
   Just copy server.py from this repository and replace your server.py in LocalAIVtuber/backend with the new one. Then run start.bat (Close any open instances of the server first!)
   **If you DO NOT already have LocalAIVtuber2 Installed**
   Download as a .zip, unpack, and run start.bat
   
-Once you click start.bat and the console displays "Uvicorn running on 0.0.0.0:8000 (Press Ctrl+C to quit)" a firewall notification from Windows will appear asking if you want to allow this through the firewall. Click "Yes," don't worry this is for LAN only (This only exposes the web UI on your local network. Do not port-forward or use tunneling if you want to keep it private.) and you don't have to click "Yes" each time you start it. Ensure both PCs see the connected network as a Private network. You should probably have a static LAN IP set up on your router for the PC you will be hosting the software on for your other LAN device.
+Once you click start.bat and the console displays "Uvicorn running on 0.0.0.0:8000 (Press Ctrl+C to quit)" a firewall notification from Windows will appear asking if you want to allow this through the firewall. Click "Yes," don't worry this is for LAN only (This only exposes the web UI on your local network. Do not port-forward or use tunneling if you want to keep it private.) and you don't have to click "Yes" each time you start it. If this notification does not come up, you may have to manually allow your python.exe through firewall in "Allow an app through Windows Firewall" and try again.
+Ensure both PCs see the connected network as a Private network. You should probably have a static LAN IP set up on your router for the PC you will be hosting the software on for your other LAN device.
 Now, you should be able to open your browser and successfully resolve these addresses:
   **On the PC running LANLocalAIVtuber2**
     - 
@@ -34,7 +39,7 @@ The only difference here is just a small section of server.py that adds this fea
 * Setting a hostname and the PC name will help because then the WebUI can resolve to hostname (if configured on your network)
 
 # Future Plans for LocalAIVtuber2-With-LAN:
-Adding ROCM/OpenCL/AMD-based CL platform to allow those with AMD cards (Me, mainly) to use those as well. Not sure how I will get them to play nicely and keep CUDA functionality, but I'll do some research and update if it's possible. Feel free to DM me with ideas or make your own Fork! Happy LLM'ing, and happy coding!
+Adding ROCM/OpenCL/AMD-based CL platform to allow those with AMD cards (Me, mainly) to use those as well. Not sure how I will get them to play nicely and keep CUDA functionality, but I'll do some research and update if it's possible. Feel free to DM me with ideas or make your own Fork! I am open to contributions and PRs, let's do this together! Happy LLM'ing, and happy coding!
 
 Merry Christmas, fam.
 
