@@ -46,6 +46,18 @@ Merry Christmas, fam.
 This is a fork of [LocalAIVtuber2]. Please respect the original author's rights.
 Forked from 0Xiaohei0/LocalAIVtuber2 – all credit to the original author and contributors of the packages and modules used therein. Much love to the open-source community!
 
+## Keeping your fork up to date
+
+If the original project gets updates in the future, you can sync them easily:
+
+```
+bash
+git remote add upstream https://github.com/0Xiaohei0/LocalAIVtuber2.git
+git fetch upstream
+git merge upstream/main
+```
+(Only needed once for the remote; run the last two lines whenever you want to pull updates.)
+
 
 
 # Original README
